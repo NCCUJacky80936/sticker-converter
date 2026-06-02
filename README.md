@@ -32,7 +32,7 @@
 - Python 3.11 或更新版本。
 - 相容的貼圖下載器 binary，放在 `bin/sticker-importer`，或已安裝在 `PATH`。
 - Telegram bot token 與數字 user ID。
-- - 選用：`ffmpeg`，只有在需要從影片貼圖抽預覽幀時需要。
+- 選用：`ffmpeg`，只有在需要從影片貼圖抽預覽幀時需要。
 
 ## AI Agent 使用
 

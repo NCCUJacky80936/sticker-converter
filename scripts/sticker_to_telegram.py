@@ -237,11 +237,18 @@ def guess_title_from_msb(data: Any, fallback: str) -> str:
         for key in ("title_zh_hant", "titleZhHant", "title", "name", "package_title"):
             value = data.get(key)
             if isinstance(value, str) and value.strip():
-                return value.strip()[:64]
+                return clean_display_title(value, fallback)[:64]
         package = data.get("package") or data.get("stickerPackage")
         if isinstance(package, dict):
             return guess_title_from_msb(package, fallback)
     return fallback
+
+
+def clean_display_title(title: str, fallback: str) -> str:
+    title = html.unescape(re.sub(r"\s+", " ", title)).strip()
+    title = re.sub(r"\s*(?:[-–|｜]\s*)+(?:貼圖|Sticker|Store|Shop|STORE|SHOP).*$", "", title).strip()
+    title = re.sub(r"\s*(?:[-–|｜]\s*)+.*(?:貼圖|Sticker|Store|Shop|STORE|SHOP).*$", "", title).strip()
+    return title[:64] if title else fallback[:64]
 
 
 def fetch_source_title(url: str, fallback: str) -> str:
@@ -257,8 +264,7 @@ def fetch_source_title(url: str, fallback: str) -> str:
     ):
         match = re.search(pattern, text, flags=re.IGNORECASE | re.DOTALL)
         if match:
-            title = html.unescape(re.sub(r"\s+", " ", match.group(1))).strip()
-            title = re.sub(r"\s*-\s*[A-Z][A-Z\s]+.*$", "", title).strip()
+            title = clean_display_title(match.group(1), fallback)
             if title:
                 return title[:64]
     return fallback
