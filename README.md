@@ -146,7 +146,10 @@ missing []
 
 ```text
 sticker_set: https://t.me/addstickers/<set_name>
+cleanup: deleted runs/<source_id>
 ```
+
+成功建立 Telegram 貼圖包後，工具預設會刪除 `runs/<source_id>/`，避免本機保留下載素材與產生檔。需要除錯時才加 `--keep-run-files`。
 
 ## 由 AI agent 依預覽圖產生 emoji
 
@@ -172,6 +175,8 @@ TSV
 輸出會在 `runs/<source_id>/review/`。
 
 ## 常見輸出
+
+這些檔案會在預覽、emoji 規劃、失敗排查或 `--keep-run-files` 模式下出現；成功 `--confirm` 後預設會刪除整個 `runs/<source_id>/`。
 
 - `runs/<source_id>/manifest.json`：下載來源、貼圖清單與 metadata。
 - `runs/<source_id>/emoji_plan.json`：每張貼圖的 emoji、信心分數與理由。
@@ -343,7 +348,10 @@ On success:
 
 ```text
 sticker_set: https://t.me/addstickers/<set_name>
+cleanup: deleted runs/<source_id>
 ```
+
+After a successful Telegram import, the tool deletes `runs/<source_id>/` by default so downloaded assets and generated files are not retained locally. Use `--keep-run-files` only when debugging.
 
 ## AI-Agent Emoji Planning
 
@@ -369,6 +377,8 @@ The default workflow uses `--skip-review`. To export a review package for anothe
 Files are written to `runs/<source_id>/review/`.
 
 ## Outputs
+
+These files exist during preview, emoji planning, failed-run debugging, or `--keep-run-files` mode. Successful `--confirm` deletes the entire `runs/<source_id>/` directory by default.
 
 - `runs/<source_id>/manifest.json`: source URL, sticker list, and metadata.
 - `runs/<source_id>/emoji_plan.json`: emoji, confidence, and reason per sticker.

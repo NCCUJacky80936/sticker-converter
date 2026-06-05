@@ -51,6 +51,7 @@ Create the Telegram sticker set after `emoji_plan.json` is complete:
 ```
 
 The `--confirm` command must refuse fallback emoji rows, missing indexes, duplicate indexes, or extra indexes before making Telegram API calls.
+After a successful Telegram import, the command deletes `runs/<source_id>/` by default. Use `--keep-run-files` only when debugging.
 
 ## Validation
 

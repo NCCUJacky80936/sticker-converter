@@ -17,7 +17,7 @@ Use this skill for requests like "轉換這份貼圖", "把貼圖匯入 Telegram
 - `TELEGRAM_USER_ID` must be numeric, not `@username`. If needed, tell the user to get it from `@userinfobot`.
 - The user's personal Telegram credentials may already be stored in `.env.local`; if present, run imports without asking for token/user id again.
 - The user must `/start` their own Telegram bot before import.
-- Preserve run artifacts under `runs/<source_id>/`; copy user-facing outputs into `runs/<source_id>/output/`.
+- Preserve run artifacts under `runs/<source_id>/` while preparing previews and emoji, then let successful `--confirm` delete the run directory by default.
 - `<source_id>` is derived deterministically from supported source URLs; do not work around it with `PYTHONHASHSEED`.
 - Do not generate review contact-sheet files by default. Use `--skip-review`.
 - Keep terminal and chat output compact: do not print full `emoji_plan.json`, manifest JSON, or long file listings unless debugging requires it.
@@ -84,6 +84,7 @@ If the importer binary is missing, prefer a workspace-local binary at `bin/stick
    ```
 
    The CLI refuses `--confirm` while `emoji_plan.json` contains fallback rows, missing indexes, duplicate indexes, or extra indexes. If it stops there, write the plan with `scripts/write_emoji_plan.py` and rerun the exact same command.
+   After a successful import, it deletes `runs/<source_id>/` so generated sticker assets are not retained locally. Add `--keep-run-files` only when debugging.
 
    If `.env.local` is absent, use one-shot environment variables instead:
 
@@ -100,8 +101,8 @@ If the importer binary is missing, prefer a workspace-local binary at `bin/stick
 - Telegram request exceptions are converted to single-line `ToolError` messages and should redact bot tokens.
 - Do not manually repair fallback emoji after upload unless recovering an older set; the normal flow should block before creating a set with fallback emoji.
 - `TELEGRAM_USER_ID` is validated before network calls and must be numeric.
-- `telegram_import.json` is a progress file, not only a final report.
-- Output success should include `runs/<source_id>/telegram_import.json`, `added` equal to sticker count, `errors: []`, and a URL like `https://t.me/addstickers/<set_name>`.
+- `telegram_import.json` is a progress file, not only a final report. It remains only for incomplete/failed imports or when `--keep-run-files` is used.
+- Output success should include a URL like `https://t.me/addstickers/<set_name>` and a cleanup line showing `runs/<source_id>/` was deleted.
 
 ## Failure Handling
 

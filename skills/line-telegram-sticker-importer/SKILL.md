@@ -18,7 +18,7 @@ Use this skill for requests like "轉換這份 LINE 貼圖", "把 LINE 貼圖匯
 - `TELEGRAM_USER_ID` must be numeric, not `@username`. If needed, tell the user to get it from `@userinfobot`.
 - The user's personal Telegram credentials may already be stored in `.env.local`; if present, run imports without asking for token/user id again.
 - The user must `/start` their own Telegram bot before import.
-- Preserve run artifacts under `runs/<source_id>/`; copy user-facing outputs into `runs/<source_id>/output/`.
+- Preserve run artifacts under `runs/<source_id>/` while preparing previews and emoji, then let successful `--confirm` delete the run directory by default.
 - `<source_id>` is derived deterministically from supported source URLs; do not work around it with `PYTHONHASHSEED`.
 - Do not generate Gemini review/contact-sheet files by default. Use `--skip-review`.
 - Keep terminal and chat output compact: do not print full `emoji_plan.json`, manifest JSON, or long file listings unless debugging requires it.
@@ -103,7 +103,7 @@ If the importer is missing, prefer a workspace-local binary at `bin/sticker-impo
      .venv/bin/python scripts/sticker_to_telegram.py "<LINE_URL>" --title auto --skip-review --confirm
    ```
 
-   The CLI refuses `--confirm` while `emoji_plan.json` contains fallback rows, missing indexes, duplicate indexes, or extra indexes. It prints flushed per-sticker progress (`Telegram: ... n/total`) and updates `runs/<source_id>/telegram_import.json` after every step, so a long import should no longer look silent. Default Telegram timeouts are connect `30s` and read `60s`; if Telegram is slow, set `TELEGRAM_READ_TIMEOUT=120` for that single command rather than waiting on the old 180-second default.
+   The CLI refuses `--confirm` while `emoji_plan.json` contains fallback rows, missing indexes, duplicate indexes, or extra indexes. It prints flushed per-sticker progress (`Telegram: ... n/total`) and updates `runs/<source_id>/telegram_import.json` after every step, so a long import should no longer look silent. After a successful import, it deletes `runs/<source_id>/` so generated sticker assets are not retained locally. Add `--keep-run-files` only when debugging. Default Telegram timeouts are connect `30s` and read `60s`; if Telegram is slow, set `TELEGRAM_READ_TIMEOUT=120` for that single command rather than waiting on the old 180-second default.
 
 ## Telegram Import Details
 
@@ -112,9 +112,9 @@ If the importer is missing, prefer a workspace-local binary at `bin/sticker-impo
 - Avoid batching all files in `createNewStickerSet`; the working pattern is first sticker with `createNewStickerSet`, then one `addStickerToSet` call per remaining sticker.
 - Telegram request exceptions are converted to single-line `ToolError` messages and should redact bot tokens. If a raw traceback ever appears, treat the token as exposed and tell the user to rotate it in `@BotFather`.
 - `TELEGRAM_USER_ID` is validated before network calls and must be numeric.
-- `telegram_import.json` is a progress file, not only a final report. During imports it may contain `status`, `current_index`, `added`, `added_indexes`, and `errors`.
+- `telegram_import.json` is a progress file, not only a final report. During imports it may contain `status`, `current_index`, `added`, `added_indexes`, and `errors`; it remains after incomplete/failed imports or when `--keep-run-files` is used.
 - If `telegram_import.json` already shows a complete successful import, rerunning the command should reuse it before `getMe` instead of making any Telegram network call or trying to create the same sticker set again.
-- Output success should include `runs/<source_id>/telegram_import.json`, `added` equal to sticker count, `errors: []`, and a URL like `https://t.me/addstickers/<set_name>`.
+- Output success should include a URL like `https://t.me/addstickers/<set_name>` and a cleanup line showing `runs/<source_id>/` was deleted.
 
 ## Optional Paths
 

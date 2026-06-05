@@ -794,6 +794,14 @@ def export_review_outputs(run_dir: Path) -> dict[str, Path]:
     return export_review_package(run_dir)
 
 
+def cleanup_run_dir(run_dir: Path) -> None:
+    resolved = run_dir.resolve()
+    runs_root = RUNS_DIR.resolve()
+    if runs_root not in resolved.parents:
+        raise ToolError(f"拒絕刪除非 runs/ 底下的路徑：{run_dir}")
+    shutil.rmtree(resolved)
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Convert a sticker source URL to a Telegram sticker set.")
     parser.add_argument("source_url", help="Sticker source URL")
@@ -801,6 +809,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--confirm", action="store_true", help="Actually create the Telegram sticker set")
     parser.add_argument("--force-download", action="store_true", help="Run importer again even if manifest exists")
     parser.add_argument("--skip-review", action="store_true", help="Do not export review/contact sheet files")
+    parser.add_argument(
+        "--keep-run-files",
+        action="store_true",
+        help="Keep runs/<source_id>/ after a successful Telegram import for debugging",
+    )
     return parser.parse_args(argv)
 
 
@@ -849,10 +862,14 @@ def main(argv: list[str]) -> int:
             return 0
 
         result = telegram_import(run_dir, manifest, items, plans, args.title)
-        output_dir = collect_user_outputs(run_dir)
-        status(f"telegram_import: {run_dir / 'telegram_import.json'}")
-        status(f"output_folder: {output_dir}")
         status(f"sticker_set: {result['url']}")
+        if args.keep_run_files:
+            output_dir = collect_user_outputs(run_dir)
+            status(f"telegram_import: {run_dir / 'telegram_import.json'}")
+            status(f"output_folder: {output_dir}")
+        else:
+            cleanup_run_dir(run_dir)
+            status(f"cleanup: deleted {run_dir}")
         return 0
     except ToolError as exc:
         print(f"ERROR: {redacted(str(exc))}", file=sys.stderr, flush=True)
