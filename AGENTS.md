@@ -1,3 +1,5 @@
+@/Users/austintang/.agent-shared/CORE_RULES.md
+
 # Agent Instructions
 
 This repository provides an AI-agent workflow for converting a supported sticker source URL into a Telegram sticker set.
@@ -31,6 +33,8 @@ Download and prepare previews without creating a Telegram sticker set:
 .venv/bin/python scripts/sticker_to_telegram.py "<STICKER_SOURCE_URL>" --title auto --skip-review
 ```
 
+`<source_id>` is deterministic for supported source URLs. Do not use `PYTHONHASHSEED` as a workflow workaround.
+
 Write a validated emoji plan:
 
 ```bash
@@ -45,6 +49,8 @@ Create the Telegram sticker set after `emoji_plan.json` is complete:
 ```bash
 .venv/bin/python scripts/sticker_to_telegram.py "<STICKER_SOURCE_URL>" --title auto --skip-review --confirm
 ```
+
+The `--confirm` command must refuse fallback emoji rows, missing indexes, duplicate indexes, or extra indexes before making Telegram API calls.
 
 ## Validation
 

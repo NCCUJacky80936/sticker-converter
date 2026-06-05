@@ -18,6 +18,7 @@ Use this skill for requests like "轉換這份貼圖", "把貼圖匯入 Telegram
 - The user's personal Telegram credentials may already be stored in `.env.local`; if present, run imports without asking for token/user id again.
 - The user must `/start` their own Telegram bot before import.
 - Preserve run artifacts under `runs/<source_id>/`; copy user-facing outputs into `runs/<source_id>/output/`.
+- `<source_id>` is derived deterministically from supported source URLs; do not work around it with `PYTHONHASHSEED`.
 - Do not generate review contact-sheet files by default. Use `--skip-review`.
 - Keep terminal and chat output compact: do not print full `emoji_plan.json`, manifest JSON, or long file listings unless debugging requires it.
 - Keep public docs and filenames generic. Do not name a specific sticker store or source platform.
@@ -82,6 +83,8 @@ If the importer binary is missing, prefer a workspace-local binary at `bin/stick
    .venv/bin/python scripts/sticker_to_telegram.py "<STICKER_SOURCE_URL>" --title auto --skip-review --confirm
    ```
 
+   The CLI refuses `--confirm` while `emoji_plan.json` contains fallback rows, missing indexes, duplicate indexes, or extra indexes. If it stops there, write the plan with `scripts/write_emoji_plan.py` and rerun the exact same command.
+
    If `.env.local` is absent, use one-shot environment variables instead:
 
    ```bash
@@ -95,6 +98,7 @@ If the importer binary is missing, prefer a workspace-local binary at `bin/stick
 - Telegram static sticker PNGs must fit `512 x 512`.
 - Avoid batching all files in `createNewStickerSet`; the working pattern is first sticker with `createNewStickerSet`, then one `addStickerToSet` call per remaining sticker.
 - Telegram request exceptions are converted to single-line `ToolError` messages and should redact bot tokens.
+- Do not manually repair fallback emoji after upload unless recovering an older set; the normal flow should block before creating a set with fallback emoji.
 - `TELEGRAM_USER_ID` is validated before network calls and must be numeric.
 - `telegram_import.json` is a progress file, not only a final report.
 - Output success should include `runs/<source_id>/telegram_import.json`, `added` equal to sticker count, `errors: []`, and a URL like `https://t.me/addstickers/<set_name>`.

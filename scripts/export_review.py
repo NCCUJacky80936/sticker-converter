@@ -50,6 +50,16 @@ def first_frame(path: Path, size: int) -> Image.Image:
         return canvas.convert("RGB")
 
 
+def sticker_display_path(run_dir: Path, sticker: dict[str, Any]) -> Path:
+    for key in ("preview_file", "file"):
+        value = sticker.get(key)
+        if isinstance(value, str) and value:
+            path = run_dir / value
+            if path.exists():
+                return path
+    raise FileNotFoundError(f"sticker file not found for index {sticker.get('index')}")
+
+
 def image_data_url(path: Path) -> str:
     mime = mimetypes.guess_type(path.name)[0] or "image/png"
     return f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode('ascii')}"
@@ -80,7 +90,7 @@ def export_contact_sheet(
             outline=(210, 216, 224),
             width=2,
         )
-        image = first_frame(run_dir / sticker["file"], cell - 24)
+        image = first_frame(sticker_display_path(run_dir, sticker), cell - 24)
         sheet.paste(image, (x + 12, y + 12))
         label = f"#{int(sticker['index']):03d}"
         bbox = draw.textbbox((0, 0), label, font=label_font)
@@ -100,7 +110,7 @@ def export_embedded_html(
 ) -> Path:
     cards = []
     for sticker in stickers:
-        src = image_data_url(run_dir / sticker["file"])
+        src = image_data_url(sticker_display_path(run_dir, sticker))
         cards.append(
             f"""
             <article>

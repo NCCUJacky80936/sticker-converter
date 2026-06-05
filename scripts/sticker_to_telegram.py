@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import mimetypes
@@ -120,10 +121,13 @@ def load_local_env(path: Path = LOCAL_ENV_PATH) -> None:
 
 
 def source_id_from_url(url: str) -> str:
-    match = re.search(r"/stickershop/product/([^/?#]+)", url)
-    if match:
-        return sanitize_name(match.group(1))
-    return sanitize_name(str(abs(hash(url)))[:10])
+    cleaned_url = url.strip()
+    for pattern in (r"/stickershop/product/([^/?#]+)", r"/S/sticker/([^/?#]+)", r"/sticker/([^/?#]+)"):
+        match = re.search(pattern, cleaned_url)
+        if match:
+            return sanitize_name(match.group(1))
+    digest = hashlib.sha256(cleaned_url.encode("utf-8")).hexdigest()
+    return sanitize_name(digest[:10])
 
 
 def sanitize_name(value: str) -> str:
@@ -429,12 +433,15 @@ def normalize_plan(plan: dict[str, Any]) -> dict[str, Any]:
         confidence = float(plan.get("confidence", 0.0))
     except (TypeError, ValueError):
         confidence = 0.0
-    return {
+    normalized = {
         "index": int(plan.get("index", 0)),
         "emoji_list": cleaned[:20],
         "confidence": max(0.0, min(1.0, confidence)),
         "reason": str(plan.get("reason", ""))[:240],
     }
+    if plan.get("fallback"):
+        normalized["fallback"] = True
+    return normalized
 
 
 def is_valid_single_emoji(value: str) -> bool:
@@ -455,6 +462,22 @@ def build_emoji_plan(run_dir: Path, items: list[StickerItem]) -> list[dict[str, 
     plans = [fallback_plan(item.index, "待 agent 依預覽圖指派 emoji。") for item in items]
     write_json(plan_path, plans)
     return plans
+
+
+def validate_emoji_plan_ready(items: list[StickerItem], plans: list[dict[str, Any]]) -> None:
+    expected = {item.index for item in items}
+    actual = [int(plan.get("index", 0)) for plan in plans]
+    actual_set = set(actual)
+    duplicates = sorted({index for index in actual if actual.count(index) > 1})
+    missing = sorted(expected - actual_set)
+    extra = sorted(actual_set - expected)
+    fallbacks = sorted(int(plan.get("index", 0)) for plan in plans if plan.get("fallback"))
+    if duplicates or missing or extra or fallbacks:
+        raise ToolError(
+            "emoji_plan.json 尚未完成，拒絕建立 Telegram 貼圖包："
+            f"duplicates={duplicates} missing={missing} extra={extra} fallbacks={fallbacks}。"
+            " 請先用 scripts/write_emoji_plan.py 寫入每張貼圖的 emoji。"
+        )
 
 
 def make_telegram_upload_file(item: StickerItem, run_dir: Path) -> Path:
@@ -802,6 +825,8 @@ def main(argv: list[str]) -> int:
         items = ensure_preview_images(run_dir, manifest, args.force_download)
         plans = build_emoji_plan(run_dir, items)
         write_json(run_dir / "emoji_plan.json", plans)
+        if args.confirm:
+            validate_emoji_plan_ready(items, plans)
         extra_paths: list[Path] = []
         if not args.skip_review:
             review_paths = export_review_outputs(run_dir)
